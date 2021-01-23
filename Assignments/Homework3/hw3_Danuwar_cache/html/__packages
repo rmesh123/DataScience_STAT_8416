@@ -1,0 +1,10 @@
+base
+knitr
+ggplot2
+data.table
+readxl
+stringr
+reshape2
+dplyr
+NLP
+tm

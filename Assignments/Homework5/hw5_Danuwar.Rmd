@@ -1,0 +1,292 @@
+---
+title: "STAT 4410/8416 Homework 5"
+author: "Danuwar Ramesh"
+date: "Due on Nov 28, 2020"
+output:
+  pdf_document: 
+    latex_engine: xelatex
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(fig.align='center', dpi=100, message=FALSE, warning=FALSE, cache=TRUE)
+output <- opts_knit$get("rmarkdown.pandoc.to")
+if(!is.null(output)) {
+  if (output=="html") opts_chunk$set(out.width = '400px') else
+    opts_chunk$set(out.width='.6\\linewidth')
+}
+```
+
+1. **Working with databases:** Please follow the instruction below before answering the questions:
+
+* Install the package `sqldf` using `install.packages('sqldf')`
+* Import the library using `library('sqldf')`
+* Read the file `https://raw.githubusercontent.com/dsindy/kaggle-titanic/master/data/train.csv ` and store it in `titanic`
+
+```{r, echo=FALSE}
+library(data.table)
+titanic <- fread('https://raw.githubusercontent.com/dsindy/kaggle-titanic/master/data/train.csv')
+```
+
+
+We can now start writing SQL Script using `SQLDF library` right inside R. See example below:
+
+```{r}
+library(sqldf)
+
+sqldf("SELECT passengerid, name, sex
+      FROM titanic
+      limit 5", drv="SQLite")
+```
+
+
+Answer the following questions. Write SQL Script where applicable.
+
+a. What is a Database Management System? Name few types of Database Management System.
+Answer: Database management system is the system that allows to store, modify, and extract information from a database.The different types of databasae management system are: mysql, oracle, ms sql, db2, ms access etc
+
+b. Provide 3 verbs of SQL? Please write what they do
+Answer:
+Select:The SELECT statement is used to select data from a database.
+Update:The SQL UPDATE Query is used to modify the existing records in a table
+Delete:To remove one or more rows from a table completely, you use the DELETE statement
+INSERT:used to add new rows of data to a table in the database
+
+c. What does the following command do in MySQL?
+    i. `show databases;
+     Answer: To display the available databases the command is show.
+    ii. `show tables;`
+    Answer:It helps to list the tables for the current/specified database or schema or accross the entire account.
+    
+d. Write `SQL` script to answer the following questions based on titanic data. Display the results of your script.
+    iii. What is the average age of passengers who survived? Group the data by Sex. Display only the column `Sex`, `AverageAge`
+```{r}
+kable(sqldf("SELECT Sex, 
+                    avg(Age) as AverageAge
+      FROM titanic
+      WHERE Survived = 1
+      group by Sex", drv="SQLite"))
+```
+    
+    
+    iv. What is the percentage of passengers who survived in each Passenger Class or `Pclass`? Group the data by `Sex`. Display Pclass, Sex, percentage value. 
+```{r}
+kable(sqldf("SELECT count(Survived) as total_rows_survived
+      FROM titanic", 
+            drv="SQLite"))
+```
+```{r}
+sqldf("SELECT pclass, 
+      sex, cast(sum(survived) as real) / count(survived) * 100 as avg_survived_percent
+      FROM titanic
+      GROUP BY pclass, sex;"
+      , drv="SQLite")
+```
+
+    
+    v. What is the average age of all the passenger (survived and not survived)? Group the data by `Pclass`, `Sex`, `Survived`. After that use `ggplot` to generate a line plot to show average age vs pclass, facet by sex and color it by survived.
+```{r}
+q1_iii <- sqldf("SELECT Pclass, 
+                        Sex, 
+                        Survived, 
+                        avg(Age) as AverageAge
+      FROM titanic
+      group by Pclass, Sex, Survived", drv="SQLite")
+
+kable(q1_iii)
+```
+```{r}
+library(ggplot2)
+ggplot(data=q1_iii, aes(x=AverageAge, y=Pclass, color=Survived, group=Survived))+
+  geom_line()+
+  geom_point()+
+  facet_grid(~Sex)+
+  xlab("Average Age")+
+  ylab("Passenger Class")+
+  labs(color='Survived')
+```
+    
+    vi. What is the name, age, sex and pclass of the 5 oldest and 5 youngest persons who died?
+```{r}
+# 5 Youngest person who died
+kable(sqldf(" SELECT Name, Age, Sex, Pclass
+        FROM titanic
+        WHERE Age IS NOT NULL OR age <= 0
+        AND Survived = 0
+        ORDER BY Age ASC
+        LIMIT 5", drv="SQLite"))
+```
+    
+```{r}
+# 5 Oldest person who died
+kable(sqldf(" SELECT name, age, sex, pclass
+        FROM titanic
+        WHERE age IS NOT NULL OR age <= 0
+        AND Survived = 0
+        ORDER BY age DESC
+        LIMIT 5", drv="SQLite"))
+```
+    
+    vii. On average which Passenger Class is more expensive?
+```{r}
+kable(sqldf(" SELECT Pclass, avg(Fare) as AverageFare
+        FROM titanic
+        GROUP BY Pclass", drv="SQLite"))
+```
+
+
+2. **Extracting twitter data;** In this problem we would like to extract data from twitter. For this refer to the documentation in the following link.
+
+`https://github.com/geoffjentry/twitteR/`
+
+a. **Twitter API set up** Set up twitter API using any of the following methods. Make sure you installed all the packages as mentioned in the class.
+
+**Method 1:** Read Getting Started section of the above link and create a twitter application by going to the link `https://apps.twitter.com/`. Once you created your application connect twitter from `R` using the secrets and keys obtained from your twitter application. 
+
+
+```{r, eval=FALSE}
+library(twitteR)
+api_key <- "your api key"  
+api_secret <- "your api secret" 
+access_token <- "your access tocken"
+access_token_secret <- "your access tocken secret"
+
+setup_twitter_oauth(api_key,api_secret,access_token,
+                    access_token_secret)
+```
+
+**Method 2:** If you don't like creating an account with twitter and going through all the trouble, you can use my keys (ssh, don't tell anyone). For this download the `hw5-twitter-auth` file from blackboard and load it as follows.
+
+```{r}
+load("hw5-twitter-auth")
+library(base64enc)
+library(httr)
+library(twitteR)
+setup_twitter_oauth(api_key,api_secret,access_token,
+                    access_token_secret)
+```
+
+b. Now search twitter messages for "data science job". Display few job informations.
+```{r}
+datascience_jobs_tweets <- twitteR::searchTwitter("data science job")
+head(datascience_jobs_tweets)
+```
+
+
+
+
+c. Search 300 tweets using the hash tag `#chess` and save them in an object called `rTweets`. Show the top 7 sources of tweets (such as android or iphone) in a ordered bar plot. 
+```{r}
+# Search 300 tweets with (#chees)
+rTweets <- twitteR::searchTwitter("#chess", n=300)
+
+# Get the source from where the tweet came from
+tweet_sources_raw <- sapply(rTweets, function(x) x$getStatusSource())
+
+# Remove html tags that is on the sources and only get the value between the tags
+# This is the source
+library(stringr)
+regex_pattern <- '[^">]+\\</a>'
+tweet_sources_text <- gsub("</a>","", unlist(str_extract(tweet_sources_raw, regex_pattern)))
+
+# Display few sources
+head(tweet_sources_text)
+
+# We now have the source from which the 300 tweets were being sent
+# Now lets get the frequency count of the sources of distict 300 tweets 
+tweet_sources_text_FreqDist <- table(tweet_sources_text)
+
+# Display few tweets with Frequenct Distribution
+head(tweet_sources_text_FreqDist)
+
+``` 
+```{r}
+library(ggplot2)
+# Convert the Frequency Distirbution data into ta nice Data Frame
+# Also sort the frequency data in decreasing order at the same time
+library(dplyr)
+rTweetsDF_sources <- data.frame(tweet_sources_text_FreqDist) %>% arrange(desc(Freq))
+
+# Display few data
+kable(head(rTweetsDF_sources))
+
+# We only want the top 7 data
+# Now lets subset the data
+rTweetsDF_sources_top7 <- head(rTweetsDF_sources, 7)
+
+# Display top 7 data
+rTweetsDF_sources_top7
+
+
+# Use ggplot to plot the ordered bar plot
+ggplot(rTweetsDF_sources_top7, aes(x=reorder(tweet_sources_text, Freq), y =Freq ))+
+  geom_bar(stat="identity")+
+  xlab("Sources of Tweet")+
+  ylab("Total Frequency")+
+  coord_flip() 
+```  
+d. Notice that the object `rTweets` is a list. Convert it into a data frame using function `twListToDF` and store it in an object called `dTweets`. Display some data from `dTweets`.
+```{r}
+dTweets <- twListToDF(rTweets)
+head(dTweets)
+```
+
+
+e. `dTweets` has a column showing the time the tweet was created. Generate a plot showing number of tweets on each of the hours. Add a smooth line overlaid on your plot.
+```{r}
+library(lubridate)
+
+# convert the time into the format ymd_hms()
+hour <- data.frame(hour(ymd_hms(dTweets$created)))
+
+# add a new column in the dTweet with hour value
+dTweets <- data.frame(hour, dTweets)
+
+# rename the newly added hour column
+colnames(dTweets)[1] <-"hourValue"
+
+# filter NA values if any
+dTweetsHourCount <- dTweets %>%
+  filter(!is.na(hourValue)) %>%
+  group_by(hourValue) %>%
+  tally()
+
+# Display Tweets per hour table
+kable(dTweetsHourCount)
+
+# Generate a plot showing number of tweets on each of the hours
+# Add a smooth line overlaid on your plot
+ggplot(dTweetsHourCount, aes(x=hourValue, y=n))+
+  geom_smooth(method = 'loess')+
+  geom_point()+
+  xlab("Hour Value")+
+  ylab("Total tweets per hour")
+``` 
+
+
+f. Arrange the dataframe `dTweets` based on the `retweetCount`. While doing this select only columns `text, screenName, retweetCount`. Store the data in a object called `mostTweets`. Display five texts that are most retweeted.
+```{r}
+#Arrange the dataframe `dTweets` based on the `retweetCount`
+# While doing this select only columns `text, screenName, retweetCount`
+mostTweets <- dTweets %>%
+  select(text, screenName, retweetCount) %>%
+  arrange(desc(retweetCount))
+
+head(mostTweets$text,5)
+```
+
+
+g. Generate a bar chart showing top 15 screen names and count of retweets from `mostTweets`. Order the bars based on the retweet counts.
+```{r}
+top15_mostTweets <- head(mostTweets, 15)
+
+ggplot(top15_mostTweets, aes(x = reorder(screenName, retweetCount), y = retweetCount)) +
+  geom_bar(stat= "Identity") +
+  xlab("Twitter Screen Name") +
+  ylab("Total retweet count") +
+  coord_flip() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+

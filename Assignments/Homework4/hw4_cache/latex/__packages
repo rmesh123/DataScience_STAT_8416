@@ -1,0 +1,14 @@
+base
+knitr
+XML
+stringr
+ggplot2
+lubridate
+chron
+mdsr
+Lahman
+dplyr
+proto
+gsubfn
+RSQLite
+sqldf

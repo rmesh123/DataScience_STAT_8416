@@ -1,0 +1,772 @@
+---
+title: "STAT 4410/8416 Homework 4"
+author: "Danuwar Ramesh"
+date: "Due on Nov 12, 2020"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(fig.align='center', dpi=100, message=FALSE, warning=FALSE, cache=TRUE)
+output <- opts_knit$get("rmarkdown.pandoc.to")
+if(!is.null(output)) {
+if (output=="html") opts_chunk$set(out.width = '400px') else
+  opts_chunk$set(out.width='.6\\linewidth')
+}
+```
+
+**1.** **Exploring XML data;** In this problem we will read the xml data. For this we will obtain a xml data called olive oils from the link http://www.ggobi.org/book/data/olive.xml. Please follow the directions in each step and provide your codes and output.
+
+
+
+a. Define XML in your own words? What is top node in XML called and what is bottom node in XML called?
+
+Answer:XMl simply means EXtensible Markup Language which uses tag like HTML but not HTML tags, instead user defined tags. Top node in XML called root and bottom node in XML called leaves.
+
+b. In your own words, write *two* difference between XML and JSON?
+
+Answer: XML uses tags but JSON does not. XML is HTML version of data while JSON is javascript version of data.
+
+c. Parse the xml data from the above link and store in a object called `olive`. Answer the following questions using R code and type your answer:
+
+```{r}
+library(XML)
+myUrl <- 'http://www.ggobi.org/book/data/olive.xml'
+olive <- xmlParse(myUrl)
+```
+
+      i. What is the name of the root of the xml file?
+```{r}
+url <- 'http://www.ggobi.org/book/data/olive.xml'
+olive <- xmlTreeParse(url)
+top <- xmlRoot(olive)
+xmlName(top)
+```
+      
+      ii. What is the count of data that is available under the root name? 
+```{r}
+xmlSize(top)
+```
+    
+      iii. Extract the text value for the `description` of the XML
+```{r}
+xmlSApply(top[[1]][["description"]], xmlValue)
+```
+      
+
+      
+      
+d. Examine the actual file by going to the link above and answer the following questions using R code and type your answer:
+      i. Identify the path of `real variables` in the xml tree
+```{r}
+library(xml2)
+x_1d <- read_xml(url)
+olive_1d <- xmlParse(url)
+xml_path(xml_find_all(x_1d, ".//realvariable"))
+```
+     i. Identify the path of `real variables` in the xml tree
+```{r}
+rvPath_1d <- "//ggobidata/data/variables/realvariable"
+rvList_1d <- sapply("name", function(x) xpathApply(olive_1d, rvPath_1d, xmlGetAttr, x))
+rvNames_1d <- as.vector(unlist(rvList_1d))
+rvNames_1d
+```
+     
+      ii. What is the `names` of real variables?
+      Answer: palmitic"    "palmitoleic" "stearic"     "oleic"       "linoleic"    "linolenic"   "arachidic"   "eicosenoic" 
+      
+      iii. What is the count of the real variables?
+```{r}
+xmlSize(rvList_1d)
+
+```
+      
+      
+      iv. Identify the path of `categorical variables` in the xml tree
+```{r}
+xml_path(xml_find_all(x_1d, ".//categoricalvariable"))
+```
+      
+      v. What is the `names` of categorical variables?
+      Answer:"region" "area"
+```{r}
+cvPath_1d <- "//ggobidata/data/variables/categoricalvariable"
+cvList_1d <- sapply("name", function(x) xpathApply(olive_1d, cvPath_1d, xmlGetAttr, x))
+cvNames_1d <- as.vector(unlist(cvList_1d))
+cvNames_1d
+```
+      
+      vi. What is the count of the categorical variables?
+```{r}
+xmlSize(cvList_1d)
+```
+      
+      
+      vii. How many levels does `categoricalvariable` with `name=area` have? Extract the text value for level 5.
+```{r}
+r_1d <- xmlRoot(olive_1d)
+varInfo_1d <- r_1d[[1]][[2]]
+cPath_1d <- "//categoricalvariable[@name='area']/levels/level"
+cLevelsList_1d <- xpathApply(varInfo_1d, cPath_1d, xmlValue)
+xmlSize(cLevelsList_1d)
+
+cPath5_1d <- "//categoricalvariable[@name='area']/levels/level[@value='5']"
+unlist(xpathApply(varInfo_1d, cPath5_1d, xmlValue))
+```
+
+      
+      
+e. Notice the path for the data in xml file. Use that path to obtain the data and store the data in a data frame called `oliveDat`. Change the column names as you have obtained the column names. Display some data.
+```{r}
+olive_1e <- xmlParse(url)
+xml_path(xml_find_one(x_1d, ".//record"))
+
+datPath_1e <- "//ggobidata/data/records/record"
+datValue_1e <- xpathApply(olive_1e, datPath_1e, xmlValue)
+datValue_1e <- strsplit(gsub('\\n','',datValue_1e), split="\\s+")
+oliveDat <- do.call(rbind.data.frame, datValue_1e)
+names(oliveDat) <- c(cvNames_1d,rvNames_1d)
+head(oliveDat)
+```
+
+
+f. Generate a plot of your choice to display any feature of `oliveDat` data. Notice that the column names are different fatty acids. The values are % of fatty acids found in the Italian olive oils coming from different regions and areas.
+
+```{r}
+library(ggplot2)
+ggplot(oliveDat, aes(x=region, y=palmitic))+
+geom_point()+
+xlab("Region")+
+ylab("palmitic")
+```
+
+
+**2.** **Working with date-time data;** The object `myDate` contains the date and time. Based on this object answer the following questions using R code and type the answer after your findings.
+```{r}
+myDate <- "2020-10-01 09:42:43"
+```
+
+a. What is a Date and Time data? Why is Date and Time data useful?
+Answer:Date and time data are some type of data which helps to figure out the date and time in a specific format. Date and time data is useful because it helps to find out the important sights such as on  which week of the day your websites gets maximum hit, in which hour the most transactions are made or in what hour the maximum stocks are traded etc.
+
+b. Why is it a challenge to work with Date and Time data? Write at least 2 challenges.
+Answer: It is a challenge to work with data and time data because they look like numbers but they are not which makes very confusing and difficult to work with these data.Some challenges are:
+i) special formats
+ii) Leap years
+iii) different time zones
+
+c. Convert `myDate` into a date and time object with Portland, OR time zone. Display the result.
+```{r}
+myDatePacificTZ <- as.POSIXct(myDate, tz="America/Los_Angeles")
+myDatePacificTZ
+```
+
+d. Write your codes so that it displays the week day and also the month of `myDate`. 
+```{r}
+library(lubridate)
+weekdays(ymd_hms(myDate))
+months(ymd_hms(myDate))
+```
+
+e. What weekday and the month is it after exactly 100 years from `myDate`?
+```{r}
+weekdays(ymd_hms(myDate) + years(100))
+months(ymd_hms(myDate) + years(100))
+```
+
+f. Add two month with myDate and display the resulting date time. Explain why the time zone has changed even though you did not ask for time zone change.
+
+Answer: UTC time zone is ahead than PDT time zone. Here, we added  2 months which is 2 more months ahead than the earlier date . Thats why time zone has changed even thouh we did not ask for time zone change.
+
+```{r}
+ymd_hms(myDate) + months(2)
+```
+g. Suppose this homework is due on November 11, 2020 by 11.59PM. Compute and display how many seconds you got to complete this homework? Also compute the hours.
+```{r}
+myDate_2g <- "2020-11-11 11:59:00"
+difftime(ymd_hms(myDate_2g), now(), units="secs")
+
+difftime(ymd_hms(myDate_2g), now(), units="hours")
+```
+
+h. Suppose you are working with a Time-Series data. Where should the Time Value be? X-Axis or the Y-Axis? Explain your answer.
+Answer:X-Axis. It show the graph well and you read it well in  graph.
+
+i. How do you get the current date as set in the computer? Does the date belong to a Leap Year?
+Answer:We can get the current date as set in the computer with the code : now() . According to the following output, it belongs to a leap year.
+```{r}
+now <- now()
+leap_year(now)
+```
+
+j. For the years `2020` & `2021`, count the number of weekends. Which year has the highest number of Weekends?
+Answer: According to the following output, year 2021 has the highest number of weekends.
+```{r}
+Date1_2020 <- as.Date("2020-01-01")
+Date2_2020 <- as.Date("2020-12-31")
+Date1_2021 <- as.Date("2021-01-01")
+
+Date2_2021 <- as.Date("2021-12-31")
+sum(weekdays(seq(Date1_2020, Date2_2020, "days")) %in% c("Saturday", "Sunday"))
+
+sum(weekdays(seq(Date1_2021, Date2_2021, "days")) %in% c("Saturday", "Sunday"))
+```
+
+k. What is the month(MM) and day(DD) on the `305`th day of the current year?
+Answer: Month= Nov Day=01
+```{r}
+months(Date1_2020 + days(304))
+weekdays(Date1_2020 + days(304))
+```
+
+l. Generate a vector of dates incremented by 15 from start of the year 2020. Report the top 15.
+```{r}
+seq(Date1_2020, length=15, by = '15 day')
+```
+
+m. The Date `2020-10-20` is formatted `YYYY-MM-DD`, format it into `MM-DD-YYYY`
+```{r}
+format(as.Date("2020-10-20"),format="%m-%d-%Y")
+```
+
+n. Find if the Date on the question above is the weekend or a weekday.
+```{r}
+weekdays(as.Date("2020-10-20"))
+```
+
+
+**3.** **Data Wrangling and Dates** In this problem, we will be using the `mdsr` and `Luhman` packages.
+```{r}
+library(mdsr)
+library(Lahman)
+library(lubridate)
+library(dplyr)
+library(sqldf)
+library(data.table)
+```
+
+
+  a. Using the `presidential` dataset, show a simple table that displays the number of leap years that occurred during each president's time in office. Please label the second "Bush" as "Bush2".
+```{r}
+pres_dat <- presidential
+pres_dat[[1]][10] <- "Bush2"
+leapyear_pres <- pres_dat
+leapyear_pres <- leapyear_pres %>%
+  group_by(name) %>%
+  mutate(leapyear_count = sum(leap_year(year(start):year(end)))) %>%
+  select(name, leapyear_count)
+data.table(leapyear_pres)
+```
+  
+  
+  b. Consider the `Teams` dataset from the `Luhman` package that provides a series of baseball statistics over a number of years. Note that the "H" column refers to number of home runs. The following outlines a procedure to follow to determine the number of home runs that occurred during each presidents' (adjusted) time in office.
+```{r}
+library(Lahman)
+library(lubridate)
+```
+  
+      i. First, filter the `Teams` dataset to only include years between 1953 and 2016.
+```{r}
+team_dat <- Teams
+Teams <- filter(Teams, yearID >= 1953, yearID <= 2016)
+Teams
+```
+      
+      ii. Next, we will partition the rows of the `presidential` dataset by only considering the year of each president's start and end dates with the conditions that 1) if a president's term did NOT start in January, then we will not include that year in their time in office, and 2) if a president's term ended in January, then that ending year will also not be included. For example, Johnson will be considered as having a starting year of 1964 and an ending year of 1968.
+```{r}
+pres_condition <- pres_dat
+pres_condition$start <- ifelse(month(pres_condition$start) == 1,
+                               year(pres_condition$start),
+                               year(pres_condition$start + years(1)))
+pres_condition$end <- ifelse(month(pres_condition$end) == 1,
+                             year(pres_condition$end - years(1)),
+                             year(pres_condition$end))
+```
+      
+      iii. Answer the question: Which president had the most number of home runs occur during their term? Report this number.
+      Answer:Bush2
+```{r}
+team_home <- team_dat %>%
+  select(yearID, H) %>%
+  group_by(yearID) %>%
+  summarise_all("sum")
+pres_cond <- pres_condition %>%
+  select(name,start,end) %>%
+  group_by(name, start, end)
+pres_cond <- pres_cond %>%
+  mutate(count = sum(team_home$H[which(team_home$yearID >= start & team_home$yearID <= end)])) %>%
+  arrange(desc(count))
+unlist(pres_cond[1,])
+```
+      
+
+
+
+**4.** **Creating HTML Page;** In this problem we would like to create a basic HTML page. Please follow each of the steps below and finally submit your HTML file on Canvas. Please note that you don't need to answer these questions here in the .Rmd file.
+
+  a. Open a notepad or any plain text editor. Write down some basic HTML codes as shown in online (year 2014) Lecture 15, slide 6 and modify according to the following questions. Save the file as hw4.html and upload on Canvas as a separate file. 
+  b. Write "What is data science?" in the first header tag, `<h1></h1>`
+  c. Hw1 solution contains the answer of what is data science. The answer has three paragraphs. Write the three paragraphs of text about data science in three different paragraph tags `<p></p>`. You can copy the text from hw1 solution.
+  d. Write "What we learnt from hw1" in second heading under tag `<h2></h2>`
+  e. Copy all the points we learnt in hw1 solution. List all the points under ordered list tag `<ol></ol>`. Notice that each item of the list should be inside list item tag `<li></li>`.
+  f. Now we want to make the text beautiful. For this we would write some CSS codes in between `<head></head>` tag under `<style></style>`. For this please refer to online (year 2014) lecture 15 slide 8. First change the fonts of the body tag to Helvetica Neue.
+  g. For the paragraph that contains the definition of data science, give an attribute `id='dfn'` and in CSS change the color of 'dfn' to white, background-color to olive and font to be bold. 
+  h. For other paragraphs, give an attribute `class='cls'` and in CSS change the color of 'cls' to green.
+  i. Write CSS so that color of h1, h2 headers becomes `orange`.
+  j. (Optional and will not be graded) Write java Scripts codes so that onClick on `h1` header, it shows a message 'Its about data science'.
+
+
+
+**5.** **Boston hubway data;** This question will explore Boston hubway data. Please carefully *type* and *answer* each question below including your *codes* and *results*.
+
+
+  a. Obtain the compressed data, bicycle-rents.csv.zip, from Canvas and display few data rows.
+```{r}
+bicycle_rents <- read.csv("bicycle-rents.csv")
+head(bicycle_rents)
+```
+  
+  b. For each day, count the number of bikes rented for that date and show the data in a time series plot. Why is there an unusual pattern in around late 2012 and early 2013?
+  Answer: There is an unusual pattern in around late 2012 and early 2013 because people started renting more bikes during that time.
+```{r}
+library(ggplot2)
+data_5b <- bicycle_rents
+data_5b$rent_date <- format(as.Date(data_5b$rent_date),format="%m-%d-%Y")
+data_5b <- data_5b %>%
+  group_by(rent_date) %>%
+  tally()
+data_5b$rent_date <- as.Date(data_5b$rent_date, "%m-%d-%Y")
+ggplot(data_5b, aes(x = rent_date, y = n)) +
+  geom_point()
+```
+  
+  c. Based on the rent date column, create three new columns month, weekDay and hourDay which represent month, week day name and hour of the day respectively. Store the data in myDat and display few records of the data. Hint: For weekday use function wday(). After doing that, answer the following questions:
+```{r}
+myDat <- bicycle_rents
+myDat <- myDat %>%
+  mutate(month = lubridate::month(myDat$rent_date, label = TRUE, abbr = FALSE)) %>%
+  mutate(weekDay = lubridate::wday(myDat$rent_date, label = TRUE, abbr = FALSE)) %>%
+  mutate(hourDay = lubridate::hour(myDat$rent_date))
+head(myDat)
+```
+  
+      i. Which weekDay has the highest number of rentals?
+      Answer: Wednesday
+```{r}
+myDat <- bicycle_rents
+myDat <- myDat %>%
+  mutate(month = lubridate::month(myDat$rent_date, label = TRUE, abbr = FALSE)) %>%
+  mutate(weekDay = lubridate::wday(myDat$rent_date, label = TRUE, abbr = FALSE)) %>%
+  mutate(hourDay = lubridate::hour(myDat$rent_date))
+head(myDat)
+
+
+myDat_5c_i <- myDat
+myDat_5c_i <- myDat_5c_i %>%
+  group_by(weekDay) %>%
+  tally() %>%
+  arrange(desc(n))
+myDat_5c_i[1,]
+```
+     
+      ii. Overall, which hours has the highest rental for all the days?
+      Answer:17
+```{r}
+myDat_5c_ii <- myDat
+myDat_5c_ii <- myDat_5c_ii %>%
+  group_by(hourDay) %>%
+  tally() %>%
+  arrange(desc(n))
+myDat_5c_ii[1,]
+```
+     
+      iii. On Sunday, which hour(s) has the highest number of rental?
+      Answer: 14
+```{r}
+myDat_5c_iii <- myDat
+myDat_5c_iii <- filter(myDat_5c_iii, weekDay == lubridate::wday(1, label = TRUE, abbr = FALSE))
+myDat_5c_iii <- myDat_5c_iii %>%
+  group_by(hourDay, month) %>%
+  tally() %>%
+  arrange(desc(n))
+myDat_5c_iii[1,1:3]
+```
+      
+      iv.Which hour has the lowest number of rentals? what day does it fall in? what month is it?
+      Which hour has the lowest number of rentals?
+      Answer:
+      ## Which hour has the lowest number of rentals? 3
+     ## what day does it fall in? what month is it? Thursday 
+     ## What month is it?:April 
+    ## Which hour has the lowest number of rentals? 3
+```{r}
+myDat_5c_iv <- myDat
+myDat_5c_iv <- myDat_5c_iv %>%
+  group_by(hourDay, weekDay, month) %>%
+  tally() %>%
+  arrange(n)
+myDat_5c_iv[1:2,1:4]
+```
+      
+      
+      v. Create a suitable plot of the data you stored in weekDay so that it displays number of bike rents for each week day.
+```{r}
+ggplot(myDat_5c_i, aes(x = weekDay, y = n)) +
+  geom_point()
+```
+      
+  d. Summarize myDat by month based on the number of rents for each month and store the data in monthDat. Display some data.
+```{r}
+monthDat <- myDat
+monthDat <- monthDat %>%
+  group_by(year(rent_date),month) %>%
+  tally() %>%
+  arrange(desc(n))
+head(monthDat)
+```
+  
+  e. Create a suitable plot of the data you stored in monthDat so that it displays number of bike rents for each month.
+```{r}
+monthDat$`year(rent_date)` <- as.character(monthDat$`year(rent_date)`)
+colnames(monthDat)[1] <- "year"
+ggplot(monthDat, aes(x = month, y = n, color = year)) +
+  geom_point()
+```
+  
+  f. Now we want to investigate what happens in each day. Summarize myDat again but this time by weekDay and hourDay and obtain the number of rents. Store the data in hourDat and Display some data.
+```{r}
+hourDat <- myDat
+hourDat <- hourDat %>%
+  group_by(weekDay, hourDay) %>%
+  tally() %>%
+  arrange(desc(n))
+head(hourDat)
+```
+  
+  g. The dataframe hourDat is now ready for plotting. Generate line plots showing number of bike rents vs hour of the day and colored by weekDay and facet by month. Please limit the data from April 2013 to November 2013 for this question. 
+```{r}
+hourDat_5g <- myDat
+hourDat_5g <- filter(hourDat_5g, year(hourDat_5g$rent_date) == year("2013-01-01"))
+hourDat_5g <- hourDat_5g %>%
+  group_by(weekDay, hourDay, month) %>%
+  tally() %>%
+  arrange(desc(n))
+ggplot() +
+  geom_line(aes(x = hourDay, y = n, color = weekDay), hourDat_5g) +
+  facet_wrap(~month)
+```
+  
+  h. Based on what you are analyzed from the data, what month would be busiest in bike rental? Explain and support your finding using the data.
+```{r}
+hourDat_5h <- myDat
+hourDat_5h <- filter(hourDat_5h, year(hourDat_5h$rent_date) == year("2013-01-01"))
+hourDat_5h <- hourDat_5h %>%
+  group_by(month) %>%
+  tally() %>%
+  arrange(desc(n))
+head(hourDat_5h)
+```
+
+
+**6.** **Walmart Sales Analysis** Download and read the dataset `walmart_sales.csv` and `walmart_fuel_prices.csv`.
+
+We will follow the following data description when working with the above 2 datasets:
+
+ * `index:` index is a default value of count
+ * `Store:` Store is represented in number ID(1,2,3,4,...)
+ * `Dept:` Dept is Department in each Store represented in number ID (1,2,3,4,...)
+ * `Date:` Date is in YYYY-MM-DD char format - *needs to be converted into Date data type*
+ * `Weekly_Sales:` Sales of a given Dept in a given Store for the Date
+ * `Temperature:` Average temperature on the Date at given Store region
+ * `Fuel_Price:` Cost of the Fuel on the given Date at a given Store
+ * `IsHoliday:` Is the given Date a holiday Week? 
+
+Answer all of the following questions below and support your answer showing the codes and a plot (if applicable):
+
+ a. For both datasets, breakdown the `Date` column and create additional new columns `Year`, `Month`, and `Day`. You should now have additional 3 new columns in your both dataset. Report only the column names for both the dataset.
+```{r}
+walmart_sales <- read.csv("walmart_sales.csv")
+walmart_fuel_prices <- read.csv("walmart_fuel_prices.csv")
+walmart_sales$Date <- as.Date(walmart_sales$Date)
+walmart_fuel_prices$Date <- as.Date(walmart_fuel_prices$Date)
+walmart_sales <- walmart_sales %>%
+  mutate(Month = lubridate::month(walmart_sales$Date, label = TRUE, abbr = FALSE)) %>%
+  mutate(Day = lubridate::wday(walmart_sales$Date, label = TRUE, abbr = FALSE)) %>%
+  mutate(Year = lubridate::year(walmart_sales$Date))
+walmart_fuel_prices <- walmart_fuel_prices %>%
+  mutate(Month = lubridate::month(walmart_fuel_prices$Date, label = TRUE, abbr = FALSE)) %>%
+  mutate(Day = lubridate::wday(walmart_fuel_prices$Date, label = TRUE, abbr = FALSE)) %>%
+  mutate(Year = lubridate::year(walmart_fuel_prices$Date))
+colnames(walmart_sales)
+
+colnames(walmart_fuel_prices)
+```
+ 
+ b. In `walmart_sales`: which `Month(s)` of `Year` have the highest `Weekly_Sales`? Report the Year, Month, Store, and Dept.
+ Answer:December,2010
+```{r}
+walmart_sales_6b <- walmart_sales
+walmart_sales_6b <- walmart_sales_6b %>%
+  select(Store, Dept, Year, Month, Weekly_Sales) %>%
+  group_by(Month, Year, Store, Dept) %>%
+  summarise_all("sum") %>%
+  arrange(desc(Weekly_Sales, Year))
+walmart_sales_6b[1,]
+```
+ 
+ c. In `walmart_sales`: calculate the average monthly sales by Department for each Store. Which Store(s) has the highest average monthly sales on the department(s)? Report the Store, Department, Date.
+ Answer: Store 10.  department 72 has the highest average monthly sales .
+```{r}
+walmart_sales_6c <- walmart_sales
+walmart_sales_6c <- walmart_sales_6c %>%
+  select(Store, Dept, Month, Date, Weekly_Sales) %>%
+  group_by(Month, Store, Dept, Date) %>%
+  summarise_all("mean") %>%
+  arrange(desc(Weekly_Sales))
+walmart_sales_6c[1,-1]
+```
+ 
+ d. In `walmart_sales`: which month of year `2011` has the highest overall sales by Store? Name the holiday(Labor day, July 4th, Halloween, Thanksgiving, Christmas,... etcs) that falls on the month. After that do the same for `2012`. Does the highest sales per month fall on the same holiday for both years? Report your findings for both year.
+ Answer: ## Name the holiday(Labor day, July 4th, Halloween, Thanksgiving, Christmas,... etcs) that falls on the month: 2011- Dec 20-National Sangria Day.
+## Name the holiday(Labor day, July 4th, Halloween, Thanksgiving, Christmas,... etcs) that falls on the month: 2012- June 4- National Cheese Dayy.
+## Does the highest sales per month fall on the same holiday for both years? Report your findings for both year.: No 
+```{r}
+walmart_sales_6d <- walmart_sales
+walmart_sales_6d_11 <- filter(walmart_sales_6d,
+                              Year == lubridate::year("2011-01-01"))
+walmart_sales_6d_12 <- filter(walmart_sales_6d,
+                              Year == lubridate::year("2012-01-01"))
+walmart_sales_6d_11 <- walmart_sales_6d_11 %>%
+  select(Store, Month, Weekly_Sales) %>%
+  group_by(Month, Store) %>%
+  summarise_all("sum") %>%
+  arrange(desc(Weekly_Sales))
+walmart_sales_6d_12 <- walmart_sales_6d_12 %>%
+  select(Store, Month, Weekly_Sales) %>%
+  group_by(Month, Store) %>%
+  summarise_all("sum") %>%
+  arrange(desc(Weekly_Sales))
+walmart_sales_6d_11[1,]
+
+
+walmart_sales_6d_12[1,]
+```
+
+ 
+ 
+ e. In `walmart_sales`: report the lowest sales per month for the year `2011` for `IsHoliday == TRUE`. Name the holiday(Labor day, July 4th, Halloween, Thanksgiving, Christmas,... etcs) that falls on the month. Do the same for `2012` and report if the lowest sales are on the same month.
+ Answer:## Name the holiday(Labor day, July 4th, Halloween, Thanksgiving, Christmas,... etcs) that falls on the month- 2011- December. Christmas eve and Christmas day.  
+## Name the holiday(Labor day, July 4th, Halloween, Thanksgiving, Christmas,... etcs) that falls on the month- 2011- December. Christmas eve and Christmas day. 2012- September- Labor Day 
+## report if the lowest sales are on the same month: No they dont 
+
+```{r}
+walmart_sales_6e <- walmart_sales
+walmart_sales_6e_11 <- filter(walmart_sales_6e,
+                              Year == lubridate::year("2011-01-01")
+                              & IsHoliday == TRUE)
+
+walmart_sales_6e_11 <- walmart_sales_6e_11 %>%
+  select(Month, Weekly_Sales) %>%
+  group_by(Month) %>%
+  summarise_all("sum") %>%
+  arrange(Weekly_Sales)
+walmart_sales_6e_12 <- filter(walmart_sales_6e,
+                              Year == lubridate::year("2012-01-01")
+                              & IsHoliday == TRUE)
+walmart_sales_6e_12 <- walmart_sales_6e_12 %>%
+  select(Month, Weekly_Sales) %>%
+  group_by(Month) %>%
+  summarise_all("sum") %>%
+  arrange(Weekly_Sales)
+walmart_sales_6e_11[1,]
+
+walmart_sales_6e_12[1,]
+```
+
+ 
+ f. In `walmart_sales`: We have 45 unique stores. Generate a nice plot on the total sales by store for the year `2012`. Report the Store number.
+```{r}
+walmart_sales_6f <- walmart_sales
+walmart_sales_6f_12 <- filter(walmart_sales_6f, Year == lubridate::year("2012-01-01"))
+walmart_sales_6f_12 <- walmart_sales_6f_12 %>%
+  select(Store, Weekly_Sales) %>%
+  group_by(Store) %>%
+  summarise_all("sum")
+walmart_sales_6f_12$Store <- as.character(walmart_sales_6f_12$Store)
+colnames(walmart_sales_6f_12)[1] = "Store"
+walmart_sales_6f_12 <- walmart_sales_6f_12 %>%
+  mutate(Store = reorder(Store, Weekly_Sales)) %>%
+  mutate(Weekly_Sales_in_thousand_per_unit = walmart_sales_6f_12$Weekly_Sales / 1000)
+ggplot(walmart_sales_6f_12, aes(x = Store, y = Weekly_Sales_in_thousand_per_unit)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+ 
+ g. In `walmart_fuel_prices`: For the year `2011` do you think higher the `temperature` relates to higher `fuel price`? Support your answer with a nice plot.
+```{r}
+walmart_fuel_prices_6g <- walmart_fuel_prices
+walmart_fuel_prices_6g <- filter(walmart_fuel_prices_6g , Year == lubridate::year("2011-01-01"))
+ggplot(data = walmart_fuel_prices_6g, aes(x = Temperature, y = Fuel_Price)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = F)
+```
+ 
+ h. In `walmart_fuel_prices`: For the year `2010` which `Store` had the lowest Fuel Price? Report the `month` and `temperature`. On the same `month`, what was the highest fuel price for the store? Report the difference.
+ Answer:**For the year `2010` which `Store` had the lowest Fuel Price? :Store 36 
+  ** On the same `month`, what was the Lowest fuel price for the store and temperature ?:2.472 and 45.66
+  ** On the same `month`, what was the highest fuel price for the store and temperature?: 2.545 and 45.97
+  **The difference is 0.073
+```{r}
+walmart_fuel_prices_6h <- walmart_fuel_prices
+walmart_fuel_prices_6h <- filter(walmart_fuel_prices_6h , Year == lubridate::year("2010-01-01"))
+walmart_fuel_prices_6h <- walmart_fuel_prices_6h %>%
+  select(Store, Fuel_Price, Month, Temperature) %>%
+  group_by(Store, Month, Temperature) %>%
+  summarise_all("min") %>%
+  
+arrange(Fuel_Price)
+walmart_fuel_prices_6h[1,]
+
+walmart_fuel_prices_6h_h <- walmart_fuel_prices
+walmart_fuel_prices_6h_h <- filter(walmart_fuel_prices_6h_h , Year == lubridate::year("2010-01-01")
+                                   & Month == lubridate::month("2010-02-02", label = TRUE, abbr = FALSE)
+                                   & Store == 36)
+walmart_fuel_prices_6h_h <- walmart_fuel_prices_6h_h %>%
+  select(Store, Fuel_Price, Month, Temperature) %>%
+  arrange(desc(Fuel_Price))
+walmart_fuel_prices_6h_h[1,]
+
+walmart_fuel_prices_6h_h[1,2] - walmart_fuel_prices_6h[1,4]
+```
+ 
+ i. In `walmart_fuel_prices`: For the `IsHoliday == TRUE`, which month has the lowest `Fuel Price` for the year `2012`? name the holiday(Labor day, July 4th, Halloween, Thanksgiving, Christmas,... etcs) that falls on the month. Also report month of the highest fuel price and name of the holiday.
+
+Answer: which month has the lowest `Fuel Price` for the year `2012`?: Feb
+        *name the holiday(Labor day, July 4th, Halloween, Thanksgiving, Christmas,... etcs) that falls on the month(lowest `Fuel Price`) .:Valentine day- Feb 14
+      *report month of the highest fuel price : September
+     *name of the holiday(highest fuel price) :Labor Day
+```{r}
+walmart_fuel_prices_6i <- walmart_fuel_prices
+walmart_fuel_prices_6i <- filter(walmart_fuel_prices_6i , Year == year("2012-01-01")
+                                 & IsHoliday == TRUE)
+walmart_fuel_prices_6i <- walmart_fuel_prices_6i %>%
+  select(Fuel_Price, Month) %>%
+  group_by(Month) %>%
+  summarise_all("min") %>%
+  arrange(Fuel_Price)
+walmart_fuel_prices_6i[1,]
+
+walmart_fuel_prices_6i[4,]
+```
+
+
+
+
+**7.** **Optional for undergraduate but mandatory for graduate students** 
+Download the data from [Github - click here](https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv) 
+
+
+The link above contains a time-series data for COVID-19 confirmed cases in the US. Limit the data to only use `Nebraska State` and please answer the following questions:
+
+a. What is the total confirmed cases in Nebraska as of October 30th 2020 as per the dataset?
+Answer:69645	
+```{r}
+library(data.table)
+US_covid_confirmed <-
+fread(
+'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv',
+        stringsAsFactors = FALSE)
+nebraska_covid_confirmed <- US_covid_confirmed %>%
+  filter(Province_State == "Nebraska")
+nebraska_long <- melt(nebraska_covid_confirmed, id=1:11) %>%
+  select(Province_State, Admin2, "variable", "value")
+nebraska_daily_cummulative <- nebraska_long %>%
+  group_by(variable, Province_State) %>%
+  select(Province_State, Admin2, "variable", "value") %>%
+  summarise(total_cases = sum(value))
+result_7a <- nebraska_daily_cummulative %>%
+  filter(variable == "10/30/20")
+result_7a
+```
+
+b. On what date has the highest confirmed cases? Demonstrate using a suitable graph for all the available data.
+Answer:11/6/20
+```{r}
+nebraska_cases_daily <- nebraska_daily_cummulative %>%
+  group_by(Province_State) %>%
+  mutate(cases_daily = total_cases - lag(total_cases))
+plot(nebraska_cases_daily$variable, nebraska_cases_daily$cases_daily)
+
+
+result_7b <- nebraska_cases_daily %>%
+  arrange(desc(cases_daily))
+result_7b[1,]
+```
+
+c. Which County has the highest daily confirmed cases? Report both the County name and the date
+Answer:Douglas, 11/12/20
+```{r}
+nebraska_county_daily_cummulative <- nebraska_long %>%
+  group_by(variable, Province_State, Admin2) %>%
+  select(Province_State, Admin2, "variable", "value") %>%
+  summarise(total_cases = sum(value))
+nebraska_county_cases_daily <- nebraska_county_daily_cummulative %>%
+  group_by(Province_State, Admin2) %>%
+  mutate(cases_daily = total_cases - lag(total_cases)) %>%
+  arrange(desc(cases_daily))
+nebraska_county_cases_daily[1,-4]
+```
+
+
+d. Identify two countries that have top total confirmed cases. Generate a time series plot of daily confirm cases for these two countries.
+```{r}
+nebraska_county_cases_daily_7d <- nebraska_county_cases_daily %>%
+  filter(variable == "11/7/20") %>%
+  arrange(desc(total_cases))
+head(nebraska_county_cases_daily_7d, n = 2L)
+
+result_7d <- nebraska_county_cases_daily %>%
+  filter(Admin2 == "Douglas" | Admin2 == "Lancaster") %>%
+  arrange(variable)
+result_7d <- result_7d[!(is.na(result_7d$cases_daily) | result_7d$cases_daily==""), ]
+result_7d_Dou <- filter(result_7d, Admin2 == "Douglas")
+result_7d_Lan <- filter(result_7d, Admin2 == "Lancaster")
+plot(result_7d_Dou$variable, result_7d_Dou$cases_daily)
+
+plot(result_7d_Lan$variable, result_7d_Lan$cases_daily)
+```
+
+e. Show the total confirmed cases for all the locations in an interactive world map (hint: you may use `leaflet` package in `R`.
+```{r}
+library(leaflet)
+library(webshot)
+
+install_phantomjs(version = "2.1.1",
+baseURL = "https://github.com/wch/webshot/releases/download/v0.3.1/",
+force = FALSE)
+
+US_covid_confirmed_7e <- US_covid_confirmed
+covid_long <- melt(US_covid_confirmed_7e, id=1:11) %>%
+  select(Province_State, Admin2, Lat, Long_, "variable", "value")
+daily_cummulative <- covid_long %>%
+  group_by(Province_State, Admin2, variable, Lat, Long_) %>%
+  select(Province_State, Admin2, Lat, Long_, "variable", "value") %>%
+  summarise(total_cases = sum(value))
+result_7e <- daily_cummulative %>%
+  filter(variable == "11/7/20")
+leaflet() %>%
+  addTiles() %>%
+  setView(lng=-95, lat=41, zoom = 4) %>%
+  addCircleMarkers(lat = result_7e$Lat, lng = result_7e$Long_,
+                   popup = as.character(result_7e$total_cases),
+                   clusterOptions = markerClusterOptions())
+```
+
+
+
+
+
+

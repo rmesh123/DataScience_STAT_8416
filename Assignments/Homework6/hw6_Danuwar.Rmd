@@ -1,0 +1,80 @@
+---
+title: "STAT 4410/8416 Homework 6"
+author: "Danuwar Ramesh"
+date: "Due on Dec 7, 2020"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(fig.align='center', dpi=100, message=FALSE, warning=FALSE, cache=FALSE)
+output <- opts_knit$get("rmarkdown.pandoc.to")
+if (output=="html") opts_chunk$set(out.width = '400px') else
+  opts_chunk$set(out.width='.6\\linewidth')
+```
+
+1. **Big data tools:** The Hadoop Distributed File System (HDFS) allows us to manipulate massive amount of data using scalable computing power. Please answer the questions below based on HDFS. You don't have to show the results, just explain.
+
+a. Explain what the following two commands do. 
+    Answer: It creates HDFS directory wordcount/input
+    
+```{r, eval = FALSE}
+hadoop fs -mkdir wordcount
+hadoop fs -mkdir wordcount/input
+```
+    
+b. Explain what the following `pig` command will do. 
+Answer: To check and make sure files are copied properly or not.
+```{r, eval = FALSE}
+hadoop fs -ls wordcount/input
+```
+    
+c. Write down two differences between `Pig` and `Hive`. Which code will run faster?
+    Answer: Pig is a procedural data flow language whereas hive is a declarative SQLish language. Pig is mainly used by researchers and programmer whereas hive is mainly used by data analysis.
+    Pig code run faster than Hive.
+    
+d. If a data manipulation process takes two days to complete, what can you do to finish it in one day?
+Answer:We can do data manipulation is lesser amount of time by using Normalisation. This helps in many ways without creating any sort of anomalies. Normalization is the process of organizing the data. Normalization is used to minimize the redundancy from a relation or set of relations. It is also used to eliminate the undesirable characteristics like Insertion, Update and Deletion Anomalies.
+
+2. Please answer the following questions about **image data**.
+
+a. What is the difference between vector image and raster image?
+Answer:Vector images are the collection of elements such as lines, rectangles, circle and square.In raster, pixels of same color or different color are placed close to each other so that human eye perceives them as picture but not as dots.eg jpeg, gif, png etc
+
+b. Read the given JPEG image file `flowers.jpg` into an object called `flowers` (hint: use function `readJPEG`). Demonstrate that the object `flowers` is an array. Display the dimension of `flowers`.
+```{r}
+library(jpeg)
+flowers <- readJPEG("flowers.jpg")
+
+
+dim(flowers)
+is.array(flowers)
+```
+
+c. Convert `flowers` into a raster image and print it (hint: use function `grid.raster`).
+```{r}
+library(grid)
+library(jpeg)
+flowers <- readJPEG("flowers.jpg")
+flowers <- as.raster(flowers)
+grid.raster(flowers)
+plot(flowers)
+
+```
+
+d. Subset `flowers` taking first 650 rows and 650 columns and save it in an object called `aflower`. Print `aflower` after making it a raster image.
+```{r}
+library(grid)
+library(jpeg)
+aflower <- flowers[1:650,1:650]
+plot(aflower)
+```
+```
+
+e. **Optional question (Bonus 2 points):** Now we want to modify original picture `flowers` by swapping top left flower with bottom right flower. i, e, swap the positions of `Common Mallow` and `Calla Lilly`. Print the new modified flowers image to demonstrate your result.
+
+f. **Challenged question for fun, not required to submit:** Can you determine how many flowers have white colors in it? Demonstrate that by showing your code.
